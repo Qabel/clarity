@@ -143,7 +143,7 @@ export default function(): void {
       expect(nbChanges).toBe(6);
     });
 
-    describe('manual refresh', function() {
+    describe('manual stateChange', function() {
       beforeEach(function() {
         this.users = [{ name: 'hello' }, { name: 'world' }];
         this.itemsInstance.smartenUp();

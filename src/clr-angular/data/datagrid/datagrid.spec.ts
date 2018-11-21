@@ -34,21 +34,25 @@ import { DatagridRenderOrganizer } from './render/render-organizer';
 @Component({
   template: `
     <clr-datagrid *ngIf="!destroy"
-                  [(clrDgSelected)]="selected" [clrDgLoading]="loading" (clrDgRefresh)="refresh($event)">
-        <clr-dg-column>
-            First
-            <clr-dg-filter *ngIf="filter" [clrDgFilter]="testFilter"></clr-dg-filter>
-        </clr-dg-column>
-        <clr-dg-column>Second</clr-dg-column>
-    
-        <clr-dg-row *clrDgItems="let item of items">
-            <clr-dg-cell>{{item}}</clr-dg-cell>
-            <clr-dg-cell>{{item * item}}</clr-dg-cell>
-        </clr-dg-row>
-    
-        <clr-dg-footer>{{items.length}} items</clr-dg-footer>
+                  [clrDgState]="state"
+                  [(clrDgSelected)]="selected" [clrDgLoading]="loading"
+                  (clrDgRefresh)="refresh($event)"
+                  (clrDgStateChange)="stateChange($event)"
+    >
+      <clr-dg-column>
+        First
+        <clr-dg-filter *ngIf="filter" [clrDgFilter]="testFilter"></clr-dg-filter>
+      </clr-dg-column>
+      <clr-dg-column>Second</clr-dg-column>
+
+      <clr-dg-row *clrDgItems="let item of items">
+        <clr-dg-cell>{{item}}</clr-dg-cell>
+        <clr-dg-cell>{{item * item}}</clr-dg-cell>
+      </clr-dg-row>
+
+      <clr-dg-footer>{{items.length}} items</clr-dg-footer>
     </clr-datagrid>
-`,
+  `,
 })
 class FullTest {
   items = [1, 2, 3];
@@ -56,21 +60,28 @@ class FullTest {
   loading = false;
   selected: number[];
 
+  state: ClrDatagridStateInterface;
+
   nbRefreshed = 0;
   latestState: ClrDatagridStateInterface;
+  latestRefreshState: ClrDatagridStateInterface;
 
   fakeLoad = false;
 
-  // ClrDatagridFilterInterface needed to test the non-emission of refresh on destroy, even with an active filter
+  // ClrDatagridFilterInterface needed to test the non-emission of stateChange on destroy, even with an active filter
   filter = false;
   testFilter = new TestFilter();
 
   destroy = false;
 
-  refresh(state: ClrDatagridStateInterface) {
+  stateChange(state: ClrDatagridStateInterface) {
     this.nbRefreshed++;
     this.latestState = state;
     this.loading = this.fakeLoad;
+  }
+
+  refresh(state: ClrDatagridStateInterface) {
+    this.latestRefreshState = state;
   }
 }
 
@@ -335,7 +346,7 @@ export default function(): void {
         context = this.create(ClrDatagrid, FullTest, [HideableColumnService]);
       });
 
-      it('allows to manually force a refresh of displayed items when data mutates', function() {
+      it('allows to manually force a state change of displayed items when data mutates', function() {
         const items = context.getClarityProvider(Items);
         let refreshed = false;
         items.change.subscribe(() => (refreshed = true));
@@ -388,7 +399,11 @@ export default function(): void {
         expect(selection.current).toEqual([5]);
       });
 
-      describe('clrDgRefresh output', function() {
+      describe('clrDgStateChange output', function() {
+        it('is the same as clrDgRefresh output', function() {
+          expect(context.testComponent.latestRefreshState).toBe(context.testComponent.latestState);
+        });
+
         it('emits once when the datagrid is ready', function() {
           expect(context.testComponent.nbRefreshed).toBe(1);
         });
@@ -507,6 +522,126 @@ export default function(): void {
           context.testComponent.destroy = true;
           context.detectChanges();
           expect(context.testComponent.nbRefreshed).toBe(0);
+        });
+      });
+
+      describe('clrDgState input', function() {
+        let stateProvider: StateProvider<number>;
+
+        beforeEach(() => {
+          stateProvider = context.getClarityProvider(StateProvider);
+        });
+
+        it('sets the paginator', function() {
+          context.testComponent.items = [1, 2, 3, 4, 5, 6];
+          const newPage = {
+            from: 2,
+            to: 3,
+            size: 2,
+          };
+          expect(context.testComponent.nbRefreshed).toEqual(1);
+          context.testComponent.state = {
+            page: newPage,
+          };
+          context.detectChanges();
+          expect(context.testComponent.nbRefreshed).toEqual(2);
+          expect(stateProvider.state.page).toEqual(newPage, 'state in provider not updated');
+        });
+
+        it('sets the custom sorting comparator', function() {
+          const sortState = {
+            by: new TestComparator(),
+            reverse: false,
+          };
+          expect(context.testComponent.nbRefreshed).toEqual(1);
+          context.testComponent.state = {
+            sort: sortState,
+          };
+          context.detectChanges();
+          expect(context.testComponent.nbRefreshed).toEqual(2);
+          expect(stateProvider.state.sort).toEqual(sortState);
+        });
+
+        it('sets the default property comparator', function() {
+          const sortState = {
+            by: 'property',
+            reverse: false,
+          };
+          expect(context.testComponent.nbRefreshed).toEqual(1);
+          context.testComponent.state = {
+            sort: sortState,
+          };
+          context.detectChanges();
+          expect(context.testComponent.nbRefreshed).toEqual(2);
+          expect(stateProvider.state.sort).toEqual(sortState);
+        });
+
+        it('sets the correct filters for all filter types', function() {
+          const filters = context.getClarityProvider(FiltersProvider);
+          const customFilter = new TestFilter();
+          const testStringFilter = new DatagridStringFilterImpl(new TestStringFilter());
+          testStringFilter.value = 'whatever';
+          const builtinStringFilter = new DatagridStringFilterImpl(new DatagridPropertyStringFilter('test'));
+          builtinStringFilter.value = '1234';
+          const filterState = [customFilter, testStringFilter, { property: 'test', value: '1234' }];
+          context.testComponent.state = {
+            filters: filterState,
+          };
+          context.detectChanges();
+          expect(context.testComponent.nbRefreshed).toEqual(2);
+          expect(filters.getActiveFilters()).toContain(customFilter);
+          expect(filters.getActiveFilters()).toContain(testStringFilter);
+          expect(
+            filters
+              .getActiveFilters()
+              .filter(
+                filter =>
+                  filter instanceof DatagridStringFilterImpl &&
+                  filter.value === '1234' &&
+                  filter.filterFn instanceof DatagridPropertyStringFilter &&
+                  filter.filterFn.prop === 'test'
+              )
+          ).toBeArrayOfSize(1);
+          expect(stateProvider.state.filters).toEqual(filterState);
+        });
+
+        it('disables and adds the correct filters for all filter types', function() {
+          const filters = context.getClarityProvider(FiltersProvider);
+          const customFilter = new TestFilter();
+          const testStringFilter = new DatagridStringFilterImpl(new TestStringFilter());
+          testStringFilter.value = 'whatever';
+          const builtinStringFilter = new DatagridStringFilterImpl(new DatagridPropertyStringFilter('test'));
+          builtinStringFilter.value = '1234';
+          const filterState = [customFilter, { property: 'test', value: '1234' }];
+          context.testComponent.state = {
+            filters: filterState,
+          };
+          context.detectChanges();
+          expect(context.testComponent.nbRefreshed).toEqual(2);
+          expect(filters.getActiveFilters()).toContain(customFilter);
+          expect(
+            filters
+              .getActiveFilters()
+              .filter(
+                filter =>
+                  filter instanceof DatagridStringFilterImpl &&
+                  filter.value === '1234' &&
+                  filter.filterFn instanceof DatagridPropertyStringFilter &&
+                  filter.filterFn.prop === 'test'
+              )
+          ).toBeArrayOfSize(1);
+          expect(stateProvider.state.filters).toEqual(filterState);
+          const newFilterState = [customFilter, testStringFilter];
+          context.testComponent.state = {
+            filters: newFilterState,
+          };
+          context.detectChanges();
+          expect(context.testComponent.nbRefreshed).toEqual(3);
+          expect(filters.getActiveFilters()).toContain(customFilter);
+          expect(filters.getActiveFilters()).toContain(testStringFilter);
+          expect(filters.getActiveFilters()).not.toContain(builtinStringFilter);
+          expect(filters.getActiveFilters()).toBeArrayOfSize(2);
+          expect(stateProvider.state.filters).toEqual(newFilterState);
         });
       });
     });

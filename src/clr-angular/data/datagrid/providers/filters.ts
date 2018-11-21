@@ -60,7 +60,6 @@ export class FiltersProvider<T = any> {
    * Registers a filter, and returns a deregistration function
    */
   public add<F extends ClrDatagridFilterInterface<T>>(filter: F): RegisteredFilter<T, F> {
-    const index = this._all.length;
     const subscription = filter.changes.subscribe(() => this.resetPageAndEmitFilterChange([filter]));
     let hasUnregistered = false;
     const registered = new RegisteredFilter(filter, () => {
@@ -68,7 +67,10 @@ export class FiltersProvider<T = any> {
         return;
       }
       subscription.unsubscribe();
-      this._all.splice(index, 1);
+      const index = this._all.findIndex(value => value.filter === filter);
+      if (index !== -1) {
+        this._all.splice(index, 1);
+      }
       if (filter.isActive()) {
         this.resetPageAndEmitFilterChange([]);
       }
@@ -91,6 +93,13 @@ export class FiltersProvider<T = any> {
       }
     }
     return true;
+  }
+
+  public remove<F extends ClrDatagridFilterInterface<T>>(filter: F) {
+    const registeredFilter = this._all.find(value => value.filter === filter);
+    if (registeredFilter) {
+      registeredFilter.unregister();
+    }
   }
 
   private resetPageAndEmitFilterChange(filters: ClrDatagridFilterInterface<T>[]) {

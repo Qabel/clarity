@@ -16,6 +16,7 @@ import { FiltersProvider } from './filters';
 import { Page } from './page';
 import { Sort } from './sort';
 import { StateDebouncer } from './state-debouncer.provider';
+import { ClrDatagridFilterInterface } from '../interfaces/filter.interface';
 
 /**
  * This provider aggregates state changes from the various providers of the Datagrid
@@ -77,5 +78,49 @@ export class StateProvider<T> {
       }
     }
     return state;
+  }
+
+  set state(state: ClrDatagridStateInterface<T>) {
+    this.debouncer.changeStart();
+    if (state.page) {
+      this.page.size = state.page.size;
+      this.page.current = Math.ceil(state.page.from / state.page.size) + 1;
+    }
+    if (state.sort) {
+      if (typeof state.sort.by === 'string') {
+        if (!(this.sort.comparator instanceof DatagridPropertyComparator)) {
+          this.sort.comparator = new DatagridPropertyComparator(state.sort.by);
+        }
+        if (this.sort.reverse !== state.sort.reverse) {
+          this.sort.toggle(this.sort.comparator);
+        }
+      } else {
+        this.sort.comparator = state.sort.by;
+        this.sort.reverse = state.sort.reverse;
+      }
+    }
+    if (state.filters) {
+      const activeFilters = this.filters.getActiveFilters();
+      for (const filter of state.filters) {
+        let filterObject: ClrDatagridFilterInterface<T>;
+        if (filter.hasOwnProperty('property') && filter.hasOwnProperty('value')) {
+          const defaultFilterRepresentation = filter as { property: string; value: string };
+          const propertyStringFilter = new DatagridPropertyStringFilter(defaultFilterRepresentation.property);
+          const stringFilter = new DatagridStringFilterImpl(propertyStringFilter);
+          stringFilter.value = defaultFilterRepresentation.value;
+          filterObject = stringFilter;
+        } else {
+          filterObject = filter as ClrDatagridFilterInterface<T>;
+        }
+        const existing = activeFilters.findIndex(value => value === filterObject);
+        if (existing !== -1) {
+          activeFilters.splice(existing, 1);
+        } else {
+          this.filters.add(filterObject);
+        }
+      }
+      activeFilters.forEach(filter => this.filters.remove(filter));
+    }
+    this.debouncer.changeDone();
   }
 }

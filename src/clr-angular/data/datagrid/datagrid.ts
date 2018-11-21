@@ -97,7 +97,17 @@ export class ClrDatagrid<T = any> implements AfterContentInit, AfterViewInit, On
   /**
    * Output emitted whenever the data needs to be refreshed, based on user action or external ones
    */
-  @Output('clrDgRefresh') public refresh = new EventEmitter<ClrDatagridStateInterface<T>>(false);
+  @Output('clrDgStateChange') public stateChange = new EventEmitter<ClrDatagridStateInterface<T>>(false);
+
+  @Output('clrDgRefresh') public refresh = this.stateChange;
+
+  @Input('clrDgState')
+  public set state(value: ClrDatagridStateInterface) {
+    // ignore the initial undefined value
+    if (value) {
+      this.stateProvider.state = value;
+    }
+  }
 
   /**
    * Public method to re-trigger the computation of displayed items manually
@@ -223,8 +233,8 @@ export class ClrDatagrid<T = any> implements AfterContentInit, AfterViewInit, On
    */
   ngAfterViewInit() {
     // TODO: determine if we can get rid of provider wiring in view init so that subscriptions can be done earlier
-    this.refresh.emit(this.stateProvider.state);
-    this._subscriptions.push(this.stateProvider.change.subscribe(state => this.refresh.emit(state)));
+    this.stateChange.emit(this.stateProvider.state);
+    this._subscriptions.push(this.stateProvider.change.subscribe(state => this.stateChange.emit(state)));
     this._subscriptions.push(
       this.selection.change.subscribe(s => {
         if (this.selection.selectionType === SelectionType.Single) {

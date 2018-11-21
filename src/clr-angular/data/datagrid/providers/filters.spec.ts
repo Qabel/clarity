@@ -126,6 +126,23 @@ export default function(): void {
       const filters = this.filtersInstance.getActiveFilters();
       expect(filters.length).toBe(2);
     });
+
+    it('removes and unregisters filters', function() {
+      const filter = new ActiveFilter();
+      const filter2 = new ActiveFilter();
+      const filter3 = new ActiveFilter();
+      let nbChanges = 0;
+      this.filtersInstance.change.subscribe(() => nbChanges++);
+      this.filtersInstance.add(filter);
+      this.filtersInstance.add(filter2);
+      this.filtersInstance.add(filter3);
+      expect(nbChanges).toBe(3);
+      this.filtersInstance.remove(filter);
+      this.filtersInstance.remove(filter2);
+      this.filtersInstance.remove(filter3);
+      expect(nbChanges).toBe(6);
+      expect(this.filtersInstance.getActiveFilters()).toBeArrayOfSize(0);
+    });
   });
 }
 
