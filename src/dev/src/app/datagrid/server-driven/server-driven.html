@@ -42,7 +42,7 @@
   map.
 </p>
 
-<clr-datagrid (clrDgRefresh)="refresh($event)" [clrDgLoading]="loading">
+<clr-datagrid [(clrDgState)]="state" (clrDgStateChange)="refresh()">
   <clr-dg-column>User ID</clr-dg-column>
   <clr-dg-column [clrDgField]="'name'">Name</clr-dg-column>
   <clr-dg-column [clrDgField]="'creation'">Creation date</clr-dg-column>

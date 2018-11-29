@@ -9,42 +9,49 @@ import { User } from '../inventory/user';
 import { COLORS } from '../inventory/values';
 
 @Component({
-  selector: 'clr-datagrid-color-filter-demo',
-  template: `
+    selector: 'clr-datagrid-color-filter-demo',
+    template: `
         <span *ngFor="let color of allColors" class="color-square color-selectable"
             (click)="toggleColor(color)" 
             [style.backgroundColor]="color"
             [class.color-selected]="selectedColors[color]"></span>`,
-  styleUrls: ['../datagrid.demo.scss'],
+    styleUrls: ['../datagrid.demo.scss'],
 })
 export class ColorFilter implements ClrDatagridFilterInterface<User> {
-  allColors = COLORS;
-  selectedColors: { [color: string]: boolean } = {};
-  nbColors = 0;
+    allColors = COLORS;
+    selectedColors: { [color: string]: boolean } = {};
+    nbColors = 0;
 
-  changes: EventEmitter<any> = new EventEmitter<any>(false);
+    changes: EventEmitter<any> = new EventEmitter<any>(false);
 
-  listSelected(): string[] {
-    const list: string[] = [];
-    for (const color in this.selectedColors) {
-      if (this.selectedColors[color]) {
-        list.push(color);
-      }
+    listSelected(): string[] {
+        const list: string[] = [];
+        for (const color in this.selectedColors) {
+            if (this.selectedColors[color]) {
+                list.push(color);
+            }
+        }
+        return list;
     }
-    return list;
-  }
 
-  toggleColor(color: string) {
-    this.selectedColors[color] = !this.selectedColors[color];
-    this.selectedColors[color] ? this.nbColors++ : this.nbColors--;
-    this.changes.emit(true);
-  }
+    toggleColor(color: string) {
+        this.selectedColors[color] = !this.selectedColors[color];
+        this.selectedColors[color] ? this.nbColors++ : this.nbColors--;
+        this.changes.emit(true);
+    }
 
-  accepts(user: User) {
-    return this.nbColors === 0 || this.selectedColors[user.color];
-  }
+    accepts(user: User) {
+        return this.nbColors === 0 || this.selectedColors[user.color];
+    }
 
-  isActive(): boolean {
-    return this.nbColors > 0;
-  }
+    isActive(): boolean {
+        return this.nbColors > 0;
+    }
+
+    /**
+       * Compare objects by reference
+       */
+    public equals(objectToCompare: ColorFilter): boolean {
+        return this === objectToCompare;
+    }
 }

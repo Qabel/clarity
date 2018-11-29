@@ -112,7 +112,7 @@ export class StateProvider<T> {
         } else {
           filterObject = filter as ClrDatagridFilterInterface<T>;
         }
-        const existing = activeFilters.findIndex(value => value === filterObject);
+        const existing = activeFilters.findIndex(value => value.equals(filterObject));
         if (existing !== -1) {
           activeFilters.splice(existing, 1);
         } else {
@@ -121,6 +121,7 @@ export class StateProvider<T> {
       }
       activeFilters.forEach(filter => this.filters.remove(filter));
     }
+    
     this.debouncer.changeDone();
   }
 }

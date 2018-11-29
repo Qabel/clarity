@@ -6,9 +6,11 @@
 import { Observable } from 'rxjs';
 
 export interface ClrDatagridFilterInterface<T> {
-  isActive(): boolean;
+    isActive(): boolean;
 
-  accepts(item: T): boolean;
+    accepts(item: T): boolean;
 
-  changes: Observable<any>;
+    changes: Observable<any>;
+
+    equals(objectToCompare: ClrDatagridFilterInterface<T>): boolean;
 }
