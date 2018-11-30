@@ -17,6 +17,7 @@ import { Page } from './page';
 import { Sort } from './sort';
 import { StateDebouncer } from './state-debouncer.provider';
 import { ClrDatagridFilterInterface } from '../interfaces/filter.interface';
+import { SerializableFilter } from '../interfaces/serializable.filter.interface';
 
 /**
  * This provider aggregates state changes from the various providers of the Datagrid
@@ -102,7 +103,7 @@ export class StateProvider<T> {
     if (state.filters) {
       const activeFilters = this.filters.getActiveFilters();
       for (const filter of state.filters) {
-        let filterObject: ClrDatagridFilterInterface<T>;
+        let filterObject: SerializableFilter<T>;
         if (filter.hasOwnProperty('property') && filter.hasOwnProperty('value')) {
           const defaultFilterRepresentation = filter as { property: string; value: string };
           const propertyStringFilter = new DatagridPropertyStringFilter(defaultFilterRepresentation.property);
@@ -110,9 +111,9 @@ export class StateProvider<T> {
           stringFilter.value = defaultFilterRepresentation.value;
           filterObject = stringFilter;
         } else {
-          filterObject = filter as ClrDatagridFilterInterface<T>;
+          filterObject = filter as SerializableFilter<T>;
         }
-        const existing = activeFilters.findIndex(value => value.equals(filterObject));
+        const existing = activeFilters.findIndex(value => value.compatibleToState(filterObject.filterState));
         if (existing !== -1) {
           activeFilters.splice(existing, 1);
         } else {

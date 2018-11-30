@@ -10,6 +10,7 @@ import { Subject } from 'rxjs';
 import { ClrDatagridFilterInterface } from '../interfaces/filter.interface';
 import { Page } from './page';
 import { StateDebouncer } from './state-debouncer.provider';
+import { SerializableFilter } from '../interfaces/serializable.filter.interface';
 
 @Injectable()
 export class FiltersProvider<T = any> {
@@ -27,7 +28,7 @@ export class FiltersProvider<T = any> {
     /**
      * List of all filters, whether they're active or not
      */
-    private _all: RegisteredFilter<T, ClrDatagridFilterInterface<T>>[] = [];
+    private _all: RegisteredFilter<T, SerializableFilter<T>>[] = [];
 
     /**
      * Tests if at least one filter is currently active
@@ -46,8 +47,8 @@ export class FiltersProvider<T = any> {
     /**
      * Returns a list of all currently active filters
      */
-    public getActiveFilters(): ClrDatagridFilterInterface<T>[] {
-        const ret: ClrDatagridFilterInterface<T>[] = [];
+    public getActiveFilters(): SerializableFilter<T>[] {
+        const ret: SerializableFilter<T>[] = [];
         for (const { filter } of this._all) {
             if (filter && filter.isActive()) {
                 ret.push(filter);
@@ -59,7 +60,7 @@ export class FiltersProvider<T = any> {
     /**
      * Registers a filter, and returns a deregistration function
      */
-    public add<F extends ClrDatagridFilterInterface<T>>(filter: F): RegisteredFilter<T, F> {
+    public add<F extends SerializableFilter<T>>(filter: F): RegisteredFilter<T, F> {
         const subscription = filter.changes.subscribe(() => this.resetPageAndEmitFilterChange([filter]));
         let hasUnregistered = false;
         const registered = new RegisteredFilter(filter, () => {
@@ -67,7 +68,7 @@ export class FiltersProvider<T = any> {
                 return;
             }
             subscription.unsubscribe();
-            const index = this._all.findIndex(value => value.filter.equals(filter));
+            const index = this._all.findIndex(value => value.filter.compatibleToState(filter.filterState));
             if (index !== -1) {
                 this._all.splice(index, 1);
             }
@@ -95,15 +96,15 @@ export class FiltersProvider<T = any> {
         return true;
     }
 
-    public remove<F extends ClrDatagridFilterInterface<T>>(filter: F) {
-        const registeredFilter = this._all.find(value => value.filter === filter);
+    public remove<F extends SerializableFilter<T>>(filter: F) {
+        const registeredFilter = this._all.find(value => value.filter.compatibleToState(filter.filterState));
         if (registeredFilter) {
             registeredFilter.unregister();
         }
     }
 
-    public getRegisteredFilter<F extends ClrDatagridFilterInterface<T>>(filter: F): RegisteredFilter<T, F> {
-        return <RegisteredFilter<T, F>>this._all.find(f => f.filter.equals(filter));
+    public getRegisteredFilter<F extends SerializableFilter<T>>(filter: F): RegisteredFilter<T, F> {
+        return <RegisteredFilter<T, F>>this._all.find(f => f.filter.compatibleToState(filter.filterState));
     }
 
     private resetPageAndEmitFilterChange(filters: ClrDatagridFilterInterface<T>[]) {

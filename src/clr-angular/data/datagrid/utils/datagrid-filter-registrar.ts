@@ -6,8 +6,9 @@
 import { OnDestroy } from '@angular/core';
 import { ClrDatagridFilterInterface } from '../interfaces/filter.interface';
 import { FiltersProvider, RegisteredFilter } from '../providers/filters';
+import { SerializableFilter } from '../interfaces/serializable.filter.interface';
 
-export abstract class DatagridFilterRegistrar<T, F extends ClrDatagridFilterInterface<T>> implements OnDestroy {
+export abstract class DatagridFilterRegistrar<T, F extends SerializableFilter<T>> implements OnDestroy {
     constructor(private filters: FiltersProvider<T>) { }
 
     public registered: RegisteredFilter<T, F>;

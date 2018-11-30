@@ -47,11 +47,4 @@ export class ColorFilter implements ClrDatagridFilterInterface<User> {
     isActive(): boolean {
         return this.nbColors > 0;
     }
-
-    /**
-       * Compare objects by reference
-       */
-    public equals(objectToCompare: ColorFilter): boolean {
-        return this === objectToCompare;
-    }
 }
