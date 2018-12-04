@@ -16,8 +16,8 @@ import { FiltersProvider } from './filters';
 import { Page } from './page';
 import { Sort } from './sort';
 import { StateDebouncer } from './state-debouncer.provider';
-import { ClrDatagridFilterInterface } from '../interfaces/filter.interface';
 import { SerializableFilter } from '../interfaces/serializable.filter.interface';
+import { StringFilterStateInterface } from '../interfaces/string.filter.state.interface';
 
 /**
  * This provider aggregates state changes from the various providers of the Datagrid
@@ -61,10 +61,13 @@ export class StateProvider<T> {
         if (activeFilters.length > 0) {
             state.filters = [];
             for (const filter of activeFilters) {
-                state.filters.push({
-                    property: filter.filterState.property,
-                    value: filter.filterState.value,
-                });
+                if (filter.filterState.type === 'BuiltinStringFilter') {
+                    const stringFilterState = <StringFilterStateInterface>filter.filterState;
+                    state.filters.push({
+                        property: stringFilterState.property,
+                        value: stringFilterState.value,
+                    });
+                }
             }
         }
         return state;

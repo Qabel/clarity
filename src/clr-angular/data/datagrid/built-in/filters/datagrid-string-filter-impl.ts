@@ -9,6 +9,7 @@ import { ClrDatagridStringFilterInterface } from '../../interfaces/string-filter
 import { DatagridPropertyStringFilter } from './datagrid-property-string-filter';
 import { SerializableFilter } from '../../interfaces/serializable.filter.interface';
 import { FilterStateInterface } from '../../interfaces/filter.state.interface';
+import { StringFilterStateInterface } from '../../interfaces/string.filter.state.interface';
 
 export class DatagridStringFilterImpl<T = any> implements SerializableFilter<T> {
     constructor(public filterFn: ClrDatagridStringFilterInterface<T>) {
@@ -25,7 +26,7 @@ export class DatagridStringFilterImpl<T = any> implements SerializableFilter<T> 
      * The Observable required as part of the Filter interface
      */
     private _changes = new Subject<string>();
-    private _state: FilterStateInterface;
+    private _state: StringFilterStateInterface;
 
     // We do not want to expose the Subject itself, but the Observable which is read-only
     public get changes(): Observable<string> {
@@ -61,11 +62,11 @@ export class DatagridStringFilterImpl<T = any> implements SerializableFilter<T> 
         this._state.value = this.value;
     }
 
-    public get filterState(): FilterStateInterface {
+    public get filterState(): StringFilterStateInterface {
         return this._state;
     }
 
-    public set filterState(state: FilterStateInterface) {
+    public set filterState(state: StringFilterStateInterface) {
         this._state = state;
         this._rawValue = state.value;
         this._changes.next();
@@ -90,6 +91,11 @@ export class DatagridStringFilterImpl<T = any> implements SerializableFilter<T> 
      * Compare objects by properties
      */
     public compatibleToState(state: FilterStateInterface): boolean {
-        return state.type === this._state.type && state.property === this._state.property;
+        if (state.type === this._state.type) {
+            const stringState = <StringFilterStateInterface>state;
+            return stringState.property === this._state.property;
+        } else {
+            return false;
+        }
     }
 }
