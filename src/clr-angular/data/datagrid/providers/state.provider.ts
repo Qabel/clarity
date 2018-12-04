@@ -35,7 +35,7 @@ export class StateProvider<T> {
      * The Observable that lets other classes subscribe to global state changes
      */
     change: Observable<ClrDatagridStateInterface<T>> = this.debouncer.change.pipe(map(() => this.state));
-
+    _prevState: ClrDatagridStateInterface<T>;
     /*
        * By making this a getter, we open the possibility for a setter in the future.
        * It's been requested a couple times.
@@ -74,6 +74,9 @@ export class StateProvider<T> {
     }
 
     set state(state: ClrDatagridStateInterface<T>) {
+        if (this.sameAsPreviousState(state)) {
+            return;
+        }
         this.debouncer.changeStart();
         if (state.page) {
             this.page.size = state.page.size;
@@ -116,5 +119,13 @@ export class StateProvider<T> {
         }
 
         this.debouncer.changeDone();
+    }
+
+    sameAsPreviousState(state: ClrDatagridStateInterface) {
+        const sameAsPreviousState = JSON.stringify(this._prevState) === JSON.stringify(state);
+        if (!sameAsPreviousState) {
+            this._prevState = state;
+        }
+        return sameAsPreviousState;
     }
 }
