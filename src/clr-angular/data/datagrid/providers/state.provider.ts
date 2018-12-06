@@ -61,12 +61,14 @@ export class StateProvider<T> {
         if (activeFilters.length > 0) {
             state.filters = [];
             for (const filter of activeFilters) {
-                if (filter.filterState.type === 'BuiltinStringFilter') {
+                if (filter.filterState && filter.filterState.type === 'BuiltinStringFilter') {
                     const stringFilterState = <StringFilterStateInterface>filter.filterState;
                     state.filters.push({
                         property: stringFilterState.property,
                         value: stringFilterState.value,
                     });
+                } else if (filter.filterState && filter.filterState.type) {
+                    state.filters.push(filter);
                 }
             }
         }
@@ -76,6 +78,8 @@ export class StateProvider<T> {
     set state(state: ClrDatagridStateInterface<T>) {
         if (this.sameAsPreviousState(state)) {
             return;
+        } else {
+            this._prevState = state;
         }
         this.debouncer.changeStart();
         if (state.page) {
@@ -122,10 +126,52 @@ export class StateProvider<T> {
     }
 
     sameAsPreviousState(state: ClrDatagridStateInterface) {
-        const sameAsPreviousState = JSON.stringify(this._prevState) === JSON.stringify(state);
-        if (!sameAsPreviousState) {
-            this._prevState = state;
+        if (!this._prevState) {
+            return false;
         }
-        return sameAsPreviousState;
+
+        if (!this.propertiesAreSame(state.page, this._prevState.page)) {
+            return false;
+        }
+
+        if (!this.propertiesAreSame(state.sort, this._prevState.sort)) {
+            return false;
+        }
+
+        if (!this.filtersCountAreSame(state)) {
+            return false;
+        }
+
+        if (state.filters && this._prevState.filters) {
+            for (let i; i < state.filters.length; i++) {
+                if (!this.propertiesAreSame(state.filters[i], this._prevState.filters[i])) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    propertiesAreSame(object1: any, object2: any) {
+        for (let key in object1) {
+            if (object1[key] !== object2[key]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    filtersCountAreSame(state: ClrDatagridStateInterface) {
+        if (!state.filters && !this._prevState.filters) {
+            return true;
+        }
+
+        if (!state.filters && this._prevState.filters || state.filters && !this._prevState.filters) {
+            return false;
+        }
+
+        return state.filters.length === this._prevState.filters.length;
     }
 }

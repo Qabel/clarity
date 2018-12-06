@@ -60,7 +60,12 @@
     <clr-dg-column [clrDgField]="'name'">Name</clr-dg-column>
     <clr-dg-column [clrDgField]="'creation'">Creation date</clr-dg-column>
     <clr-dg-column [clrDgField]="'pokemon'">Pokemon</clr-dg-column>
-    <clr-dg-column [clrDgField]="'color'">Favorite color</clr-dg-column>
+    <clr-dg-column>Favorite color
+        <clr-dg-filter [clrDgFilter]="colorFilter">
+            <clr-datagrid-color-filter-demo #colorFilter class="color-filter">
+            </clr-datagrid-color-filter-demo>
+        </clr-dg-filter>
+    </clr-dg-column>
 
     <clr-dg-row *ngFor="let user of users">
         <clr-dg-cell>{{user.id}}</clr-dg-cell>
