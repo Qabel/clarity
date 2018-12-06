@@ -32,6 +32,7 @@ import { DatagridSortingDemo } from './sorting/sorting';
 import { DatagridStringFilteringDemo } from './string-filtering/string-filtering';
 import { DatagridTestCasesAsyncDemo } from './test-cases-async/test-cases-async';
 import { DatagridTestCasesDemo } from './test-cases/test-cases';
+import { BindingStateComponent } from './binding-state/binding-state.component';
 
 const ROUTES: Routes = [
   {
@@ -64,6 +65,7 @@ const ROUTES: Routes = [
       { path: 'test-cases', component: DatagridTestCasesDemo },
       { path: 'test-cases-async', component: DatagridTestCasesAsyncDemo },
       { path: 'hide-show', component: DatagridHideShowDemo },
+      { path: 'binding-state', component: BindingStateComponent }
     ],
   },
 ];
