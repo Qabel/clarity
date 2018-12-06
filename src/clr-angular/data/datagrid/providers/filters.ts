@@ -118,7 +118,6 @@ export class FiltersProvider<T = any> {
         // filtering may change the page number such that current page number doesn't exist in the filtered dataset.
         // So here we always set the current page to 1 so that it'll fetch first page's data with the given filter.
         this._page.current = 1;
-        debugger;
         this._change.next(filters);
         this.stateDebouncer.changeDone();
     }
