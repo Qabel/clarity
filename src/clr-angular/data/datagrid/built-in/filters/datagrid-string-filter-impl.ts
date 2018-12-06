@@ -57,9 +57,9 @@ export class DatagridStringFilterImpl<T = any> implements SerializableFilter<T> 
         if (value !== this._rawValue) {
             this._rawValue = value;
             this._lowerCaseValue = value.toLowerCase().trim();
+            this._state.value = this.value;
             this._changes.next(value);
-        }
-        this._state.value = this.value;
+        }       
     }
 
     public get filterState(): StringFilterStateInterface {
@@ -91,7 +91,7 @@ export class DatagridStringFilterImpl<T = any> implements SerializableFilter<T> 
      * Compare objects by properties
      */
     public compatibleToState(state: FilterStateInterface): boolean {
-        if (state.type === this._state.type) {
+        if (state && state.type === this._state.type) {
             const stringState = <StringFilterStateInterface>state;
             return stringState.property === this._state.property;
         } else {
