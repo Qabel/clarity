@@ -25,8 +25,9 @@ export class BindingStateComponent {
                 filters: [
                     { property: "name", value: "sampleName" },
                     { property: "creation", value: "sampleDate" }]
-            };
+            };       
         this.colorFilter.toggleColor('Indigo');
+        this.colorFilter.toggleColor('Red');
         this.state.filters.push(this.colorFilter);
         inventory.size = 103;
         this.inventory.latency = 500;

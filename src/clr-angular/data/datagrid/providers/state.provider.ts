@@ -100,7 +100,7 @@ export class StateProvider<T> {
             }
         }
         if (state.filters) {
-            const activeFilters = this.filters.getActiveFilters();
+            const gridFilters = this.filters.getFilters();
             for (const filter of state.filters) {
                 let filterObject: SerializableFilter<T>;
                 if (filter.hasOwnProperty('property') && filter.hasOwnProperty('value')) {
@@ -112,14 +112,14 @@ export class StateProvider<T> {
                 } else {
                     filterObject = filter as SerializableFilter<T>;
                 }
-                const existing = activeFilters.findIndex(value => value.compatibleToState(filterObject.filterState));
+                const existing = gridFilters.findIndex(value => value.compatibleToState(filterObject.filterState));
                 if (existing !== -1) {
-                    activeFilters.splice(existing, 1);
+                    gridFilters.splice(existing, 1);
                 } else {
                     this.filters.add(filterObject);
                 }
             }
-            activeFilters.forEach(filter => this.filters.remove(filter));
+            gridFilters.forEach(filter => this.filters.remove(filter));
         }
 
         this.debouncer.changeDone();

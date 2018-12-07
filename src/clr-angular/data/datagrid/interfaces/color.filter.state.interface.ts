@@ -6,6 +6,8 @@ import { FilterStateInterface } from "./filter.state.interface";
  * The full license information can be found in LICENSE in the root directory of this project.
  */
 
-export interface ColorFilterStateInterface extends FilterStateInterface {
+export interface ColorFilterStateInterface extends FilterStateInterface {    
+    id: string;
+    allColors: string[];
     selectedColors: { [color: string]: boolean };
 }

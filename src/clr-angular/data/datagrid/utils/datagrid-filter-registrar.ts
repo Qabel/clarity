@@ -25,10 +25,11 @@ export abstract class DatagridFilterRegistrar<T, F extends SerializableFilter<T>
         } else if (filter) {
             const existingFilter = this.filters.getRegisteredFilter(filter);
             if (existingFilter) {
-                this.registered = existingFilter;
-            } else {
-                this.registered = this.filters.add(filter);
+                filter.filterState = existingFilter.filter.filterState;
+                this.filters.remove(existingFilter.filter);
             }
+            this.registered = this.filters.add(filter);
+
 
         }
     }

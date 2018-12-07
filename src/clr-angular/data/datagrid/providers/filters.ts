@@ -58,6 +58,19 @@ export class FiltersProvider<T = any> {
     }
 
     /**
+    * Returns a list of all filters
+    */
+    public getFilters(): SerializableFilter<T>[] {
+        const ret: SerializableFilter<T>[] = [];
+        for (const { filter } of this._all) {
+            if (filter) {
+                ret.push(filter);
+            }
+        }
+        return ret;
+    }
+
+    /**
      * Registers a filter, and returns a deregistration function
      */
     public add<F extends SerializableFilter<T>>(filter: F): RegisteredFilter<T, F> {
