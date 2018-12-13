@@ -67,7 +67,7 @@ export class StateProvider<T> {
                         property: stringFilterState.property,
                         value: stringFilterState.value,
                     });
-                } else if (filter.filterState && filter.filterState.type) {
+                } else {
                     state.filters.push(filter);
                 }
             }
@@ -112,14 +112,13 @@ export class StateProvider<T> {
                 } else {
                     filterObject = filter as SerializableFilter<T>;
                 }
-                const existing = gridFilters.findIndex(value => value.compatibleToState(filterObject.filterState));
+                const existing = gridFilters.findIndex(value => value.equals(filterObject));
                 if (existing !== -1) {
-                    gridFilters.splice(existing, 1);
+                    gridFilters[existing].filterState = filterObject.filterState;
                 } else {
                     this.filters.add(filterObject);
                 }
             }
-            gridFilters.forEach(filter => this.filters.remove(filter));
         }
 
         this.debouncer.changeDone();
@@ -130,11 +129,11 @@ export class StateProvider<T> {
             return false;
         }
 
-        if (!this.propertiesAreSame(state.page, this._prevState.page)) {
+        if (state.page && this._prevState.page && !this.propertiesAreSame(state.page, this._prevState.page)) {
             return false;
         }
 
-        if (!this.propertiesAreSame(state.sort, this._prevState.sort)) {
+        if (state.sort && this._prevState.sort && !this.propertiesAreSame(state.sort, this._prevState.sort)) {
             return false;
         }
 

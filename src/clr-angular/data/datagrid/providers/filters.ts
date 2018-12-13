@@ -82,8 +82,8 @@ export class FiltersProvider<T = any> {
             }
             subscription.unsubscribe();
             const index = this._all.findIndex(value => {
-                if (value.filter.compatibleToState) {
-                    return value.filter.compatibleToState(filter.filterState);
+                if (value.filter.equals) {
+                    return value.filter.equals(filter);
                 } else {
                     return false;
                 }
@@ -116,14 +116,14 @@ export class FiltersProvider<T = any> {
     }
 
     public remove<F extends SerializableFilter<T>>(filter: F) {
-        const registeredFilter = this._all.find(value => value.filter.compatibleToState(filter.filterState));
+        const registeredFilter = this._all.find(value => value.filter.equals(filter));
         if (registeredFilter) {
             registeredFilter.unregister();
         }
     }
 
     public getRegisteredFilter<F extends SerializableFilter<T>>(filter: F): RegisteredFilter<T, F> {
-        return <RegisteredFilter<T, F>>this._all.find(f => f.filter.compatibleToState(filter.filterState));
+        return <RegisteredFilter<T, F>>this._all.find(f => f.filter.equals(filter));
     }
 
     private resetPageAndEmitFilterChange(filters: ClrDatagridFilterInterface<T>[]) {

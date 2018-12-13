@@ -8,6 +8,6 @@ import { ClrDatagridFilterInterface } from './filter.interface';
 import { FilterStateInterface } from './filter.state.interface';
 
 export interface SerializableFilter<T> extends ClrDatagridFilterInterface<T> {
-    compatibleToState(state: FilterStateInterface): boolean;
+    equals(state: SerializableFilter<T>): boolean;
     filterState: FilterStateInterface;
 }

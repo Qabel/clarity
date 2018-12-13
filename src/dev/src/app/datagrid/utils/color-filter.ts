@@ -3,7 +3,7 @@
  * This software is released under MIT license.
  * The full license information can be found in LICENSE in the root directory of this project.
  */
-import { Component, EventEmitter, Input, OnInit, ElementRef } from '@angular/core';
+import { Component, EventEmitter } from '@angular/core';
 import { User } from '../inventory/user';
 import { COLORS } from '../inventory/values';
 import { SerializableFilter } from '../../../../../clr-angular/data/datagrid/interfaces/serializable.filter.interface';
@@ -13,44 +13,51 @@ import { ColorFilterStateInterface } from '../../../../../clr-angular/data/datag
     selector: 'clr-datagrid-color-filter-demo',
     template: `
         <span *ngFor="let color of allColors" class="color-square color-selectable"
-            (click)="toggleColor(color)" 
+            (click)="toggleColor(color)"
             [style.backgroundColor]="color"
             [class.color-selected]="selectedColors[color]"></span>`,
     styleUrls: ['../datagrid.demo.scss'],
 })
-export class ColorFilter implements SerializableFilter<User>, OnInit {
+export class ColorFilter implements SerializableFilter<User> {
     allColors = COLORS;
     selectedColors: { [color: string]: boolean } = {};
     nbColors = 0;
     changes: EventEmitter<any> = new EventEmitter<any>(false);
-    private _state: ColorFilterStateInterface;
+    private _id: string;
 
     constructor() {
-        this._state =
-            {
-                id: null,
-                type: 'ColorFilter',
-                allColors: this.allColors,
-                selectedColors: {}
-            };
+      this._id = Math.random().toString();
     }
 
-    ngOnInit() {
+    setId(id: string) {
+      this._id = id;
+    }
+
+    get id() {
+      return this._id;
     }
 
     public get filterState(): ColorFilterStateInterface {
-        return this._state;
+      return {
+        id: this.id,
+        type: 'ColorFilter',
+        allColors: this.allColors,
+        selectedColors: this.selectedColors,
+      };
     }
 
     public set filterState(state: ColorFilterStateInterface) {
-        this._state = state;
+        this.selectedColors = {}
+        this.nbColors = 0;
         for (let color in state.selectedColors) {
+          if (state.selectedColors[color]) {
             this.toggleColor(color);
+          }
         }
     }
 
-    compatibleToState(state: ColorFilterStateInterface) {
-        return state.type === this.filterState.type;
+    equals(other: ColorFilter) {
+      return other.filterState.type === this.filterState.type && other.filterState.id === this.filterState.id;
     }
 
     listSelected(): string[] {

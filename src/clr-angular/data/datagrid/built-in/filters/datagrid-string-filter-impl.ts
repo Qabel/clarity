@@ -59,7 +59,7 @@ export class DatagridStringFilterImpl<T = any> implements SerializableFilter<T> 
             this._lowerCaseValue = value.toLowerCase().trim();
             this._state.value = this.value;
             this._changes.next(value);
-        }       
+        }
     }
 
     public get filterState(): StringFilterStateInterface {
@@ -90,10 +90,9 @@ export class DatagridStringFilterImpl<T = any> implements SerializableFilter<T> 
     /**
      * Compare objects by properties
      */
-    public compatibleToState(state: FilterStateInterface): boolean {
-        if (state && state.type === this._state.type) {
-            const stringState = <StringFilterStateInterface>state;
-            return stringState.property === this._state.property;
+    public equals(other: DatagridStringFilterImpl): boolean {
+        if (other && other.filterState.type === this._state.type) {
+            return other.filterState.property === this._state.property;
         } else {
             return false;
         }
