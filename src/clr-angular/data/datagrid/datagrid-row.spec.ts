@@ -62,7 +62,7 @@ export default function(): void {
         renderer.resize();
       });
 
-      it('initialzes in display mode', function() {
+      it('initializes in display mode', function() {
         expect(context.clarityDirective.displayCells).toBe(true);
       });
 

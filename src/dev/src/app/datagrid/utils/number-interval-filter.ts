@@ -17,18 +17,13 @@ import { NumberIntervalFilterStateInterface } from '../../../../../clr-angular/d
   styleUrls: ['../datagrid.demo.scss'],
 })
 export class NumberIntervalFilter implements SerializableFilter<User> {
+  id: string;
   from: number;
   to: number;
   changes: EventEmitter<any> = new EventEmitter<any>(false);
 
   constructor() {
-    this._id = Math.random().toString();
-  }
-
-  private _id: string;
-
-  get id() {
-    return this._id;
+    this.id = Math.random().toString();
   }
 
   public get filterState(): NumberIntervalFilterStateInterface {
@@ -43,10 +38,6 @@ export class NumberIntervalFilter implements SerializableFilter<User> {
   public set filterState(state: NumberIntervalFilterStateInterface) {
     this.from = state.from;
     this.to = state.to;
-  }
-
-  setId(id: string) {
-    this._id = id;
   }
 
   equals(other: NumberIntervalFilter): boolean {

@@ -18,6 +18,7 @@ export class BindingStateComponent implements OnInit {
   total: number;
   loading: boolean = true;
   state: ClrDatagridStateInterface;
+  pageInfo: { size: number; current: number };
   genderList = ['FEMALE', 'MALE', 'OTHER'];
 
   @ViewChild('creationFilter') dateFilter: DateIntervalFilter;
@@ -37,47 +38,46 @@ export class BindingStateComponent implements OnInit {
 
   ngOnInit() {
     const dateFilter = new DateIntervalFilter();
-    dateFilter.setId(this.dateFilter.id);
+    dateFilter.id = this.dateFilter.id;
     dateFilter.from = new Date();
     dateFilter.to = new Date();
 
     const dateFilter2 = new DateIntervalFilter();
-    dateFilter2.setId(this.dateFilter2.id);
+    dateFilter2.id = this.dateFilter2.id;
     dateFilter2.from = new Date();
     dateFilter2.to = new Date();
 
     const colorFilter = new ColorFilter();
-    colorFilter.setId(this.filter.id);
+    colorFilter.id = this.filter.id;
     colorFilter.toggleColor('Indigo');
     colorFilter.toggleColor('Red');
 
     const colorFilter2 = new ColorFilter();
-    colorFilter2.setId(this.filter2.id);
+    colorFilter2.id = this.filter2.id;
     colorFilter2.toggleColor('White');
     colorFilter2.toggleColor('Black');
 
     const genderFilter = new ListFilter();
-    genderFilter.setId(this.listFilter.id);
+    genderFilter.id = this.listFilter.id;
     genderFilter.selectedValue = 'MALE';
     this.listFilter.values = this.genderList;
 
     const genderFilter2 = new ListFilter();
-    genderFilter2.setId(this.listFilter2.id);
+    genderFilter2.id = this.listFilter2.id;
     genderFilter2.selectedValue = 'FEMALE';
     this.listFilter2.values = this.genderList;
 
     const ageFilter = new NumberIntervalFilter();
-    ageFilter.setId(this.numberIntervalFilter.id);
+    ageFilter.id = this.numberIntervalFilter.id;
     ageFilter.from = 3;
     ageFilter.to = 36;
 
     const ageFilter2 = new NumberIntervalFilter();
-    ageFilter2.setId(this.numberIntervalFilter2.id);
+    ageFilter2.id = this.numberIntervalFilter2.id;
     ageFilter2.from = 5;
     ageFilter2.to = 25;
 
     this.state = {
-      page: { from: 0, to: 8, size: 10 },
       sort: { by: 'pokemon', reverse: false },
       filters: [
         { property: 'name', value: 'Alica' },
@@ -90,6 +90,10 @@ export class BindingStateComponent implements OnInit {
         ageFilter,
         ageFilter2,
       ],
+    };
+    this.pageInfo = {
+      size: 3,
+      current: 2,
     };
   }
 

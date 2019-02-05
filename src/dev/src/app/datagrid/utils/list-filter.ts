@@ -22,17 +22,13 @@ import { ListFilterStateInterface } from '../../../../../clr-angular/data/datagr
   styleUrls: ['../datagrid.demo.scss'],
 })
 export class ListFilter implements SerializableFilter<User> {
+  id: string;
   values: string[] = [];
   selectedValue: string;
   changes: EventEmitter<any> = new EventEmitter<any>(false);
-  private _id: string;
 
   constructor() {
-    this._id = Math.random().toString();
-  }
-
-  get id() {
-    return this._id;
+    this.id = Math.random().toString();
   }
 
   public get filterState(): ListFilterStateInterface {
@@ -46,10 +42,6 @@ export class ListFilter implements SerializableFilter<User> {
 
   public set filterState(state: ListFilterStateInterface) {
     this.selectedValue = state.selectedValue;
-  }
-
-  setId(id: string) {
-    this._id = id;
   }
 
   equals(other: ListFilter): boolean {

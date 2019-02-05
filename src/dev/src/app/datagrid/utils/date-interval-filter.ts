@@ -22,19 +22,14 @@ import { from } from 'rxjs/internal/observable/from';
   styleUrls: ['../datagrid.demo.scss'],
 })
 export class DateIntervalFilter implements SerializableFilter<User> {
+  id: string;
   from: Date;
   to: Date;
   visible = true;
   changes: EventEmitter<any> = new EventEmitter<any>(false);
 
   constructor() {
-    this._id = Math.random().toString();
-  }
-
-  private _id: string;
-
-  get id() {
-    return this._id;
+    this.id = Math.random().toString();
   }
 
   public get filterState(): DateIntervalFilterStateInterface {
@@ -49,10 +44,6 @@ export class DateIntervalFilter implements SerializableFilter<User> {
   public set filterState(state: DateIntervalFilterStateInterface) {
     this.from = state.from;
     this.to = state.to;
-  }
-
-  setId(id: string): void {
-    this._id = id;
   }
 
   equals(other: DateIntervalFilter): boolean {

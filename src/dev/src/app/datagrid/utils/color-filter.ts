@@ -19,18 +19,14 @@ import { ColorFilterStateInterface } from '../../../../../clr-angular/data/datag
   styleUrls: ['../datagrid.demo.scss'],
 })
 export class ColorFilter implements SerializableFilter<User> {
+  id: string;
   allColors = COLORS;
   selectedColors: { [color: string]: boolean } = {};
   nbColors = 0;
   changes: EventEmitter<any> = new EventEmitter<any>(false);
-  private _id: string;
 
   constructor() {
-    this._id = Math.random().toString();
-  }
-
-  get id() {
-    return this._id;
+    this.id = Math.random().toString();
   }
 
   public get filterState(): ColorFilterStateInterface {
@@ -50,10 +46,6 @@ export class ColorFilter implements SerializableFilter<User> {
         this.toggleColor(color);
       }
     }
-  }
-
-  setId(id: string) {
-    this._id = id;
   }
 
   equals(other: ColorFilter): boolean {

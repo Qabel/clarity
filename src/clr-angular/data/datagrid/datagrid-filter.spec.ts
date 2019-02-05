@@ -13,6 +13,8 @@ import { CustomFilter } from './providers/custom-filter';
 import { FiltersProvider } from './providers/filters';
 import { Page } from './providers/page';
 import { StateDebouncer } from './providers/state-debouncer.provider';
+import { SerializableFilter } from './interfaces/serializable.filter.interface';
+import { FilterStateInterface } from './interfaces/filter.state.interface';
 
 export default function(): void {
   describe('ClrDatagridFilter component', function() {
@@ -76,7 +78,7 @@ export default function(): void {
         expect(context.clarityDirective.filter).toBe(filter);
       });
 
-      it('offers two-way binding on he open state of the filter dropdown', function() {
+      it('offers two-way binding on the open state of the filter dropdown', function() {
         context.testComponent.filter = filter;
         context.testComponent.open = true;
         context.detectChanges();
@@ -119,8 +121,14 @@ export default function(): void {
   });
 }
 
-class TestFilter implements ClrDatagridFilterInterface<number> {
+class TestFilter implements SerializableFilter<number> {
+  public id;
   public active = true;
+
+  constructor() {
+    this.id = Math.random().toString();
+    this.filterState = { type: 'TestFilter' };
+  }
 
   isActive(): boolean {
     return this.active;
@@ -131,6 +139,12 @@ class TestFilter implements ClrDatagridFilterInterface<number> {
   }
 
   changes = new Subject<boolean>();
+
+  filterState: FilterStateInterface;
+
+  equals(state: TestFilter): boolean {
+    return this.filterState.type === state.filterState.type && this.id === state.id;
+  }
 }
 
 @Component({ template: `<clr-dg-filter [clrDgFilter]="filter" [(clrDgFilterOpen)]="open">Hello world</clr-dg-filter>` })

@@ -17,6 +17,10 @@ import { DomAdapter } from '../../../../utils/dom-adapter/dom-adapter';
 
 import { DatagridStringFilter } from './datagrid-string-filter';
 import { DatagridStringFilterImpl } from './datagrid-string-filter-impl';
+import { SerializableFilter } from '../../interfaces/serializable.filter.interface';
+import { Observable } from 'rxjs';
+import { FilterStateInterface } from '../../interfaces/filter.state.interface';
+import { DatagridPropertyStringFilter } from '@clr/angular';
 
 const PROVIDERS = [FiltersProvider, DomAdapter, Page, StateDebouncer];
 
@@ -106,9 +110,20 @@ export default function(): void {
   });
 }
 
-class TestFilter implements ClrDatagridStringFilterInterface<string> {
-  accepts(item: string, search: string) {
-    return item.toLowerCase() === search;
+class TestFilter implements SerializableFilter<string> {
+  changes: Observable<any>;
+  filterState: FilterStateInterface;
+
+  accepts(item: string): boolean {
+    return false;
+  }
+
+  equals(state: SerializableFilter<string>): boolean {
+    return false;
+  }
+
+  isActive(): boolean {
+    return false;
   }
 }
 
@@ -119,6 +134,6 @@ class TestFilter implements ClrDatagridStringFilterInterface<string> {
 class FullTest {
   @ViewChild(CustomFilter) customFilter: CustomFilter;
 
-  filter: ClrDatagridStringFilterInterface<string>;
+  filter: ClrDatagridStringFilterInterface<string> = new DatagridPropertyStringFilter<string>('test');
   filterValue: string;
 }
