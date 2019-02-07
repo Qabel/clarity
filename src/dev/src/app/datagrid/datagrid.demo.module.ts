@@ -39,6 +39,10 @@ import { DatagridStringFilteringDemo } from './string-filtering/string-filtering
 import { DatagridTestCasesAsyncDemo } from './test-cases-async/test-cases-async';
 import { DatagridTestCasesDemo } from './test-cases/test-cases';
 import { ColorFilter } from './utils/color-filter';
+import { BindingStateComponent } from './binding-state/binding-state.component';
+import { ListFilter } from './utils/list-filter';
+import { NumberIntervalFilter } from './utils/number-interval-filter';
+import { DateIntervalFilter } from './utils/date-interval-filter';
 
 @NgModule({
   imports: [CommonModule, FormsModule, ClarityModule, ROUTING, UtilsDemoModule],
@@ -70,7 +74,11 @@ import { ColorFilter } from './utils/color-filter';
     DatagridTestCasesAsyncDemo,
     DatagridKitchenSinkDemo,
     ColorFilter,
+    ListFilter,
+    NumberIntervalFilter,
+    DateIntervalFilter,
     DetailWrapper,
+    BindingStateComponent,
   ],
   exports: [
     DatagridDemo,

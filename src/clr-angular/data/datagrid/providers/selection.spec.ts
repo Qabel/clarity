@@ -7,14 +7,14 @@ import { TrackByFunction } from '@angular/core';
 import { fakeAsync, tick } from '@angular/core/testing';
 import { Subject } from 'rxjs';
 
-import { ClrDatagridFilterInterface } from '../interfaces/filter.interface';
-
 import { FiltersProvider } from './filters';
 import { Items } from './items';
 import { Page } from './page';
 import { Selection, SelectionType } from './selection';
 import { Sort } from './sort';
 import { StateDebouncer } from './state-debouncer.provider';
+import { SerializableFilter } from '../interfaces/serializable.filter.interface';
+import { FilterStateInterface } from '../interfaces/filter.state.interface';
 
 const numberSort = (a: number, b: number) => a - b;
 
@@ -225,7 +225,7 @@ export default function(): void {
         expect(nbChanges).toBe(1);
 
         const evenFilter: EvenFilter = new EvenFilter();
-        filtersInstance.add(<ClrDatagridFilterInterface<any>>evenFilter);
+        filtersInstance.add(evenFilter);
         evenFilter.toggle();
 
         // current is set to [] because filter is applied, and nbChanges is 3.
@@ -241,7 +241,7 @@ export default function(): void {
 
         const evenFilter: EvenFilter = new EvenFilter();
 
-        filtersInstance.add(<ClrDatagridFilterInterface<number>>evenFilter);
+        filtersInstance.add(evenFilter);
 
         evenFilter.toggle();
 
@@ -590,7 +590,8 @@ export default function(): void {
   });
 }
 
-abstract class TestFilter implements ClrDatagridFilterInterface<number> {
+abstract class TestFilter implements SerializableFilter<number> {
+  public id;
   private active = false;
 
   toggle() {
@@ -605,6 +606,12 @@ abstract class TestFilter implements ClrDatagridFilterInterface<number> {
   changes = new Subject<boolean>();
 
   abstract accepts(n: number): boolean;
+
+  filterState: FilterStateInterface;
+
+  equals(state: TestFilter): boolean {
+    return this.filterState.type === state.filterState.type && this.id === state.id;
+  }
 }
 
 class EvenFilter extends TestFilter {

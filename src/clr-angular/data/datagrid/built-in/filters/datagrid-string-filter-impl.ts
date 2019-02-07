@@ -5,16 +5,27 @@
  */
 import { Observable } from 'rxjs';
 import { Subject } from 'rxjs';
-import { ClrDatagridFilterInterface } from '../../interfaces/filter.interface';
 import { ClrDatagridStringFilterInterface } from '../../interfaces/string-filter.interface';
+import { DatagridPropertyStringFilter } from './datagrid-property-string-filter';
+import { SerializableFilter } from '../../interfaces/serializable.filter.interface';
+import { StringFilterStateInterface } from '../../interfaces/string.filter.state.interface';
 
-export class DatagridStringFilterImpl<T = any> implements ClrDatagridFilterInterface<T> {
-  constructor(public filterFn: ClrDatagridStringFilterInterface<T>) {}
+export class DatagridStringFilterImpl<T = any> implements SerializableFilter<T> {
+  constructor(public filterFn: ClrDatagridStringFilterInterface<T>) {
+    const datagridPropertyStringFilter = <DatagridPropertyStringFilter>filterFn;
+    this._state = {
+      type: 'BuiltinStringFilter',
+      property: datagridPropertyStringFilter.prop,
+      value: '',
+    };
+  }
 
   /**
    * The Observable required as part of the Filter interface
    */
   private _changes = new Subject<string>();
+  private _state: StringFilterStateInterface;
+
   // We do not want to expose the Subject itself, but the Observable which is read-only
   public get changes(): Observable<string> {
     return this._changes.asObservable();
@@ -44,8 +55,19 @@ export class DatagridStringFilterImpl<T = any> implements ClrDatagridFilterInter
     if (value !== this._rawValue) {
       this._rawValue = value;
       this._lowerCaseValue = value.toLowerCase().trim();
+      this._state.value = this.value;
       this._changes.next(value);
     }
+  }
+
+  public get filterState(): StringFilterStateInterface {
+    return this._state;
+  }
+
+  public set filterState(state: StringFilterStateInterface) {
+    this._state = state;
+    this._rawValue = state.value;
+    this._changes.next();
   }
 
   /**
@@ -61,5 +83,16 @@ export class DatagridStringFilterImpl<T = any> implements ClrDatagridFilterInter
   public accepts(item: T): boolean {
     // We always test with the lowercase value of the input, to stay case insensitive
     return this.filterFn.accepts(item, this.lowerCaseValue);
+  }
+
+  /**
+   * Compare objects by properties
+   */
+  public equals(other: DatagridStringFilterImpl): boolean {
+    if (other && other.filterState.type === this._state.type) {
+      return other.filterState.property === this._state.property;
+    } else {
+      return false;
+    }
   }
 }

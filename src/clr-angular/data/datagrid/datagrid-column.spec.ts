@@ -6,7 +6,7 @@
 import { Component, Renderer2, ViewChild } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { Subject } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 
 import { DatagridPropertyComparator } from './built-in/comparators/datagrid-property-comparator';
 import { DatagridStringFilter } from './built-in/filters/datagrid-string-filter';
@@ -16,8 +16,6 @@ import { DatagridHideableColumnModel } from './datagrid-hideable-column.model';
 import { ClrDatagridSortOrder } from './enums/sort-order.enum';
 import { TestContext } from './helpers.spec';
 import { ClrDatagridComparatorInterface } from './interfaces/comparator.interface';
-import { ClrDatagridFilterInterface } from './interfaces/filter.interface';
-import { ClrDatagridStringFilterInterface } from './interfaces/string-filter.interface';
 import { DragDispatcher } from './providers/drag-dispatcher';
 import { FiltersProvider } from './providers/filters';
 import { Page } from './providers/page';
@@ -26,6 +24,8 @@ import { StateDebouncer } from './providers/state-debouncer.provider';
 import { TableSizeService } from './providers/table-size.service';
 import { DomAdapter } from '../../utils/dom-adapter/dom-adapter';
 import { DatagridRenderOrganizer } from './render/render-organizer';
+import { SerializableFilter } from './interfaces/serializable.filter.interface';
+import { FilterStateInterface } from './interfaces/filter.state.interface';
 
 const PROVIDERS_NEEDED = [
   Sort,
@@ -436,7 +436,7 @@ class TestComparator implements ClrDatagridComparatorInterface<number> {
   }
 }
 
-class TestFilter implements ClrDatagridFilterInterface<number> {
+class TestFilter implements SerializableFilter<number> {
   isActive(): boolean {
     return true;
   }
@@ -446,11 +446,32 @@ class TestFilter implements ClrDatagridFilterInterface<number> {
   }
 
   changes = new Subject<boolean>();
+  filterState: FilterStateInterface;
+
+  equals(state: SerializableFilter<number>): boolean {
+    return false;
+  }
 }
 
-class TestStringFilter implements ClrDatagridStringFilterInterface<number> {
-  accepts(n: number, search: string): boolean {
+class TestStringFilter implements SerializableFilter<number> {
+  id: string;
+  changes: Observable<any>;
+  filterState: FilterStateInterface;
+
+  constructor() {
+    this.id = Math.random().toString();
+  }
+
+  accepts(item: number): boolean {
     return true;
+  }
+
+  equals(state: TestStringFilter): boolean {
+    return state.filterState.type === state.filterState.type && this.id === state.id;
+  }
+
+  isActive(): boolean {
+    return false;
   }
 }
 

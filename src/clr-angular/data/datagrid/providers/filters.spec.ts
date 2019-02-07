@@ -10,6 +10,8 @@ import { ClrDatagridFilterInterface } from '../interfaces/filter.interface';
 import { FiltersProvider } from './filters';
 import { Page } from './page';
 import { StateDebouncer } from './state-debouncer.provider';
+import { SerializableFilter } from '../interfaces/serializable.filter.interface';
+import { FilterStateInterface } from '../interfaces/filter.state.interface';
 
 export default function(): void {
   describe('FiltersProvider provider', function() {
@@ -146,8 +148,13 @@ export default function(): void {
   });
 }
 
-abstract class TestFilter implements ClrDatagridFilterInterface<number> {
+abstract class TestFilter implements SerializableFilter<number> {
   private active = false;
+  id: string;
+
+  constructor() {
+    this.id = Math.random().toString();
+  }
 
   toggle() {
     this.active = !this.active;
@@ -161,6 +168,12 @@ abstract class TestFilter implements ClrDatagridFilterInterface<number> {
   changes = new Subject<boolean>();
 
   abstract accepts(n: number): boolean;
+
+  filterState: FilterStateInterface;
+
+  equals(state: TestFilter): boolean {
+    return this.id === state.id;
+  }
 }
 
 class EvenFilter extends TestFilter {

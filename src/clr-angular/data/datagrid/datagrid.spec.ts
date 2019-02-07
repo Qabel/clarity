@@ -4,7 +4,7 @@
  * The full license information can be found in LICENSE in the root directory of this project.
  */
 import { ChangeDetectionStrategy, Component, Input, Renderer2 } from '@angular/core';
-import { Subject } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 
 import { DatagridPropertyStringFilter } from './built-in/filters/datagrid-property-string-filter';
 import { DatagridStringFilterImpl } from './built-in/filters/datagrid-string-filter-impl';
@@ -12,9 +12,7 @@ import { ClrDatagrid } from './datagrid';
 import { DatagridDisplayMode } from './enums/display-mode.enum';
 import { TestContext } from './helpers.spec';
 import { ClrDatagridComparatorInterface } from './interfaces/comparator.interface';
-import { ClrDatagridFilterInterface } from './interfaces/filter.interface';
 import { ClrDatagridStateInterface } from './interfaces/state.interface';
-import { ClrDatagridStringFilterInterface } from './interfaces/string-filter.interface';
 import { ColumnToggleButtonsService } from './providers/column-toggle-buttons.service';
 import { MockDisplayModeService } from './providers/display-mode.mock';
 import { DisplayModeService } from './providers/display-mode.service';
@@ -30,6 +28,12 @@ import { StateDebouncer } from './providers/state-debouncer.provider';
 import { StateProvider } from './providers/state.provider';
 import { TableSizeService } from './providers/table-size.service';
 import { DatagridRenderOrganizer } from './render/render-organizer';
+import { SerializableFilter } from './interfaces/serializable.filter.interface';
+import { FilterStateInterface } from './interfaces/filter.state.interface';
+import { ListFilter } from '../../../dev/src/app/datagrid/utils/list-filter';
+import { ColorFilter } from '../../../dev/src/app/datagrid/utils/color-filter';
+import { DateIntervalFilter } from '../../../dev/src/app/datagrid/utils/date-interval-filter';
+import { NumberIntervalFilter } from '../../../dev/src/app/datagrid/utils/number-interval-filter';
 
 @Component({
   template: `
@@ -263,7 +267,14 @@ class TestComparator implements ClrDatagridComparatorInterface<number> {
   }
 }
 
-class TestFilter implements ClrDatagridFilterInterface<number> {
+class TestFilter implements SerializableFilter<number> {
+  public id;
+
+  constructor() {
+    this.id = Math.random().toString();
+    this.filterState = { type: 'TestFilter' };
+  }
+
   isActive(): boolean {
     return true;
   }
@@ -273,10 +284,33 @@ class TestFilter implements ClrDatagridFilterInterface<number> {
   }
 
   changes = new Subject<boolean>();
+
+  filterState: FilterStateInterface;
+
+  equals(state: TestFilter): boolean {
+    return this.filterState.type === state.filterState.type && this.id === state.id;
+  }
 }
 
-class TestStringFilter implements ClrDatagridStringFilterInterface<number> {
-  accepts(item: number, search: string) {
+class TestStringFilter implements SerializableFilter<number> {
+  changes: Observable<any>;
+  filterState: FilterStateInterface;
+  id: string;
+
+  constructor() {
+    this.id = Math.random().toString();
+    this.filterState = { type: 'TestStringFilter' };
+  }
+
+  accepts(item: number): boolean {
+    return true;
+  }
+
+  equals(state: TestStringFilter): boolean {
+    return this.filterState.type === state.filterState.type && this.id === state.id;
+  }
+
+  isActive(): boolean {
     return true;
   }
 }
@@ -489,24 +523,6 @@ export default function(): void {
           });
         });
 
-        it('emits the correct data for all filter types', function() {
-          const filters = context.getClarityProvider(FiltersProvider);
-          const customFilter = new TestFilter();
-          const testStringFilter = new DatagridStringFilterImpl(new TestStringFilter());
-          testStringFilter.value = 'whatever';
-          const builtinStringFilter = new DatagridStringFilterImpl(new DatagridPropertyStringFilter('test'));
-          builtinStringFilter.value = '1234';
-          filters.add(customFilter); // custom filter
-          filters.add(testStringFilter); // custom ClrDatagridStringFilterInterface ??
-          filters.add(builtinStringFilter);
-          context.detectChanges();
-          expect(context.testComponent.latestState.filters).toEqual([
-            customFilter,
-            testStringFilter,
-            { property: 'test', value: '1234' },
-          ]);
-        });
-
         it('emits early enough to avoid chocolate errors on the loading input', function() {
           context.testComponent.fakeLoad = true;
           const page: Page = context.getClarityProvider(Page);
@@ -576,72 +592,273 @@ export default function(): void {
           expect(stateProvider.state.sort).toEqual(sortState);
         });
 
-        it('sets the correct filters for all filter types', function() {
+        it('adds and removes the correct data for BuiltinStringFilters', function() {
           const filters = context.getClarityProvider(FiltersProvider);
-          const customFilter = new TestFilter();
-          const testStringFilter = new DatagridStringFilterImpl(new TestStringFilter());
-          testStringFilter.value = 'whatever';
-          const builtinStringFilter = new DatagridStringFilterImpl(new DatagridPropertyStringFilter('test'));
-          builtinStringFilter.value = '1234';
-          const filterState = [customFilter, testStringFilter, { property: 'test', value: '1234' }];
-          context.testComponent.state = {
-            filters: filterState,
-          };
+          const stringFilter1 = new DatagridStringFilterImpl(new DatagridPropertyStringFilter('test'));
+          stringFilter1.value = '1234';
+          const stringFilter2 = new DatagridStringFilterImpl(new DatagridPropertyStringFilter('otherProperty'));
+          stringFilter2.value = 'otherValue';
+
+          filters.add(stringFilter1);
+          filters.add(stringFilter2);
           context.detectChanges();
-          expect(context.testComponent.nbRefreshed).toEqual(2);
-          expect(filters.getActiveFilters()).toContain(customFilter);
-          expect(filters.getActiveFilters()).toContain(testStringFilter);
+
+          expect(filters.getActiveFilters()).toBeArrayOfSize(2);
           expect(
-            filters
-              .getActiveFilters()
-              .filter(
-                filter =>
-                  filter instanceof DatagridStringFilterImpl &&
-                  filter.value === '1234' &&
-                  filter.filterFn instanceof DatagridPropertyStringFilter &&
-                  filter.filterFn.prop === 'test'
-              )
-          ).toBeArrayOfSize(1);
-          expect(stateProvider.state.filters).toEqual(filterState);
+            filters.getActiveFilters().every(filter => filter.filterState.type === 'BuiltinStringFilter')
+          ).toBeTrue('Not every active filter is BuiltinStringFilter');
+          expect((<DatagridStringFilterImpl>filters.getActiveFilters()[0]).filterState.property).toContain('test');
+          expect((<DatagridStringFilterImpl>filters.getActiveFilters()[0]).filterState.value).toContain('1234');
+          expect((<DatagridStringFilterImpl>filters.getActiveFilters()[1]).filterState.property).toContain(
+            'otherProperty'
+          );
+          expect((<DatagridStringFilterImpl>filters.getActiveFilters()[1]).filterState.value).toContain('otherValue');
+          expect(context.testComponent.latestState.filters).toEqual([
+            { property: 'test', value: '1234' },
+            { property: 'otherProperty', value: 'otherValue' },
+          ]);
+
+          filters.remove(stringFilter1);
+          context.detectChanges();
+
+          expect(filters.getActiveFilters()).toBeArrayOfSize(1);
+          expect(
+            filters.getActiveFilters().every(filter => filter.filterState.type === 'BuiltinStringFilter')
+          ).toBeTrue('Not every active filter is BuiltinStringFilter');
+          expect((<DatagridStringFilterImpl>filters.getActiveFilters()[0]).filterState.property).toContain(
+            'otherProperty'
+          );
+          expect((<DatagridStringFilterImpl>filters.getActiveFilters()[0]).filterState.value).toContain('otherValue');
+          expect(context.testComponent.latestState.filters).toEqual([
+            { property: 'otherProperty', value: 'otherValue' },
+          ]);
         });
 
-        it('disables and adds the correct filters for all filter types', function() {
+        it('adds and removes the correct data for Color filters', function() {
           const filters = context.getClarityProvider(FiltersProvider);
-          const customFilter = new TestFilter();
-          const testStringFilter = new DatagridStringFilterImpl(new TestStringFilter());
-          testStringFilter.value = 'whatever';
+          const colorFilter1 = new ColorFilter();
+          colorFilter1.toggleColor('Blue');
+          colorFilter1.toggleColor('Green');
+          const colorFilter2 = new ColorFilter();
+          colorFilter2.toggleColor('Red');
+          colorFilter2.toggleColor('White');
+
+          filters.add(colorFilter1);
+          filters.add(colorFilter2);
+          context.detectChanges();
+
+          expect(filters.getActiveFilters()).toBeArrayOfSize(2);
+          expect(filters.getActiveFilters().every(filter => filter.filterState.type === 'ColorFilter')).toBeTrue(
+            'Not every active filter is ColorFilter'
+          );
+          expect((<ColorFilter>filters.getActiveFilters()[0]).listSelected()).toContain('Green');
+          expect((<ColorFilter>filters.getActiveFilters()[0]).listSelected()).toContain('Blue');
+          expect((<ColorFilter>filters.getActiveFilters()[0]).listSelected()).not.toContain('White');
+          expect((<ColorFilter>filters.getActiveFilters()[0]).listSelected()).not.toContain('Brown');
+          expect((<ColorFilter>filters.getActiveFilters()[1]).listSelected()).toContain('White');
+          expect((<ColorFilter>filters.getActiveFilters()[1]).listSelected()).toContain('Red');
+          expect((<ColorFilter>filters.getActiveFilters()[1]).listSelected()).not.toContain('Green');
+          expect((<ColorFilter>filters.getActiveFilters()[1]).listSelected()).not.toContain('Yellow');
+          expect(context.testComponent.latestState.filters).toEqual([colorFilter1, colorFilter2]);
+
+          filters.remove(colorFilter1);
+          context.detectChanges();
+
+          expect(filters.getActiveFilters()).toBeArrayOfSize(1);
+          expect(filters.getActiveFilters().every(filter => filter.filterState.type === 'ColorFilter')).toBeTrue(
+            'Not every active filter is ColorFilter'
+          );
+          expect((<ColorFilter>filters.getActiveFilters()[0]).listSelected()).toContain('White');
+          expect((<ColorFilter>filters.getActiveFilters()[0]).listSelected()).toContain('Red');
+          expect((<ColorFilter>filters.getActiveFilters()[0]).listSelected()).not.toContain('Green');
+          expect((<ColorFilter>filters.getActiveFilters()[0]).listSelected()).not.toContain('Yellow');
+          expect(context.testComponent.latestState.filters).toEqual([colorFilter2]);
+        });
+
+        it('adds and removes the correct data for List filters', function() {
+          const filters = context.getClarityProvider(FiltersProvider);
+          const listFilter1 = new ListFilter();
+          listFilter1.values = ['FEMALE', 'MALE'];
+          listFilter1.selectedValue = 'MALE';
+          const listFilter2 = new ListFilter();
+          listFilter2.values = ['YES', 'NO', 'MAYBE'];
+          listFilter2.selectedValue = 'MAYBE';
+
+          filters.add(listFilter1);
+          filters.add(listFilter2);
+          context.detectChanges();
+
+          expect(filters.getActiveFilters()).toBeArrayOfSize(2);
+          expect(filters.getActiveFilters().every(filter => filter.filterState.type === 'ListFilter')).toBeTrue(
+            'Not every active filter is ListFilter'
+          );
+          expect((<ListFilter>filters.getActiveFilters()[0]).selectedValue).toEqual('MALE');
+          expect((<ListFilter>filters.getActiveFilters()[1]).selectedValue).toEqual('MAYBE');
+          expect(context.testComponent.latestState.filters).toEqual([listFilter1, listFilter2]);
+
+          filters.remove(listFilter2);
+          context.detectChanges();
+
+          expect(filters.getActiveFilters()).toBeArrayOfSize(1);
+          expect(filters.getActiveFilters().every(filter => filter.filterState.type === 'ListFilter')).toBeTrue(
+            'Not every active filter is ListFilter'
+          );
+          expect((<ListFilter>filters.getActiveFilters()[0]).selectedValue).toEqual('MALE');
+          expect(context.testComponent.latestState.filters).toEqual([listFilter1]);
+        });
+
+        it('adds and removes the correct data for Date interval filters', function() {
+          const filters = context.getClarityProvider(FiltersProvider);
+          const dateIntervalFilter1 = new DateIntervalFilter();
+          const today = new Date();
+          dateIntervalFilter1.from = today;
+          let to1 = new Date();
+          to1.setDate(to1.getDate() + 1);
+          dateIntervalFilter1.to = to1;
+          const dateIntervalFilter2 = new DateIntervalFilter();
+          dateIntervalFilter2.from = today;
+          let to2 = new Date();
+          to2.setDate(to2.getDate() + 3);
+          dateIntervalFilter2.to = to2;
+
+          filters.add(dateIntervalFilter1);
+          filters.add(dateIntervalFilter2);
+          context.detectChanges();
+
+          expect(filters.getActiveFilters()).toBeArrayOfSize(2);
+          expect(filters.getActiveFilters().every(filter => filter.filterState.type === 'DateIntervalFilter')).toBeTrue(
+            'Not every active filter is DateIntervalFilter'
+          );
+          expect((<NumberIntervalFilter>filters.getActiveFilters()[0]).from.toString()).toEqual(today.toString());
+          expect((<NumberIntervalFilter>filters.getActiveFilters()[0]).to.toString()).toEqual(to1.toString());
+          expect((<NumberIntervalFilter>filters.getActiveFilters()[1]).from.toString()).toEqual(today.toString());
+          expect((<NumberIntervalFilter>filters.getActiveFilters()[1]).to.toString()).toEqual(to2.toString());
+          expect(context.testComponent.latestState.filters).toEqual([dateIntervalFilter1, dateIntervalFilter2]);
+
+          filters.remove(dateIntervalFilter2);
+          context.detectChanges();
+
+          expect(filters.getActiveFilters()).toBeArrayOfSize(1);
+          expect(filters.getActiveFilters().every(filter => filter.filterState.type === 'DateIntervalFilter')).toBeTrue(
+            'Not every active filter is DateIntervalFilter'
+          );
+          expect((<NumberIntervalFilter>filters.getActiveFilters()[0]).from.toString()).toEqual(today.toString());
+          expect((<NumberIntervalFilter>filters.getActiveFilters()[0]).to.toString()).toEqual(to1.toString());
+          expect(context.testComponent.latestState.filters).toEqual([dateIntervalFilter1]);
+        });
+
+        it('adds and removes the correct data for Number interval filters', function() {
+          const filters = context.getClarityProvider(FiltersProvider);
+          const numberIntervalFilter1 = new NumberIntervalFilter();
+          numberIntervalFilter1.from = 2;
+          numberIntervalFilter1.to = 7;
+          const numberIntervalFilter2 = new NumberIntervalFilter();
+          numberIntervalFilter2.from = 13;
+          numberIntervalFilter2.to = 78;
+
+          filters.add(numberIntervalFilter1);
+          filters.add(numberIntervalFilter2);
+          context.detectChanges();
+
+          expect(filters.getActiveFilters()).toBeArrayOfSize(2);
+          expect(
+            filters.getActiveFilters().every(filter => filter.filterState.type === 'NumberIntervalFilter')
+          ).toBeTrue('Not every active filter is NumberIntervalFilter');
+          expect((<NumberIntervalFilter>filters.getActiveFilters()[0]).from).toEqual(2);
+          expect((<NumberIntervalFilter>filters.getActiveFilters()[0]).to).toEqual(7);
+          expect((<NumberIntervalFilter>filters.getActiveFilters()[1]).from).toEqual(13);
+          expect((<NumberIntervalFilter>filters.getActiveFilters()[1]).to).toEqual(78);
+          expect(context.testComponent.latestState.filters).toEqual([numberIntervalFilter1, numberIntervalFilter2]);
+
+          filters.remove(numberIntervalFilter1);
+          context.detectChanges();
+
+          expect(filters.getActiveFilters()).toBeArrayOfSize(1);
+          expect(
+            filters.getActiveFilters().every(filter => filter.filterState.type === 'NumberIntervalFilter')
+          ).toBeTrue('Not every active filter is NumberIntervalFilter');
+          expect((<NumberIntervalFilter>filters.getActiveFilters()[0]).from).toEqual(13);
+          expect((<NumberIntervalFilter>filters.getActiveFilters()[0]).to).toEqual(78);
+          expect(context.testComponent.latestState.filters).toEqual([numberIntervalFilter2]);
+        });
+
+        it('adds and removes the correct data for all filter types', function() {
+          const filters = context.getClarityProvider(FiltersProvider);
+          const listFilter = new ListFilter();
+          listFilter.values = ['FEMALE', 'MALE'];
+          listFilter.selectedValue = 'MALE';
+          const colorFilter = new ColorFilter();
+          colorFilter.toggleColor('Blue');
+          colorFilter.toggleColor('Green');
+          const dateIntervalFilter = new DateIntervalFilter();
+          const from = new Date();
+          dateIntervalFilter.from = from;
+          let to = new Date();
+          to.setDate(to.getDate() + 1);
+          dateIntervalFilter.to = to;
+          const numberIntervalFilter = new NumberIntervalFilter();
+          numberIntervalFilter.from = 13;
+          numberIntervalFilter.to = 78;
           const builtinStringFilter = new DatagridStringFilterImpl(new DatagridPropertyStringFilter('test'));
           builtinStringFilter.value = '1234';
-          const filterState = [customFilter, { property: 'test', value: '1234' }];
-          context.testComponent.state = {
-            filters: filterState,
-          };
+
+          filters.add(listFilter);
+          filters.add(colorFilter);
+          filters.add(dateIntervalFilter);
+          filters.add(numberIntervalFilter);
+          filters.add(builtinStringFilter);
           context.detectChanges();
-          expect(context.testComponent.nbRefreshed).toEqual(2);
-          expect(filters.getActiveFilters()).toContain(customFilter);
-          expect(
-            filters
-              .getActiveFilters()
-              .filter(
-                filter =>
-                  filter instanceof DatagridStringFilterImpl &&
-                  filter.value === '1234' &&
-                  filter.filterFn instanceof DatagridPropertyStringFilter &&
-                  filter.filterFn.prop === 'test'
-              )
-          ).toBeArrayOfSize(1);
-          expect(stateProvider.state.filters).toEqual(filterState);
-          const newFilterState = [customFilter, testStringFilter];
-          context.testComponent.state = {
-            filters: newFilterState,
-          };
+
+          expect(filters.getActiveFilters()).toBeArrayOfSize(5);
+          expect(context.testComponent.latestState.filters[0].filterState.type).toEqual('ListFilter');
+          expect((<ListFilter>context.testComponent.latestState.filters[0]).selectedValue).toEqual('MALE');
+          expect(context.testComponent.latestState.filters[1].filterState.type).toEqual('ColorFilter');
+          const selectedColors = (<ColorFilter>context.testComponent.latestState.filters[1]).listSelected();
+          expect(selectedColors).toContain('Blue');
+          expect(selectedColors).toContain('Green');
+          expect(selectedColors).not.toContain('Red');
+          expect(context.testComponent.latestState.filters[2].filterState.type).toEqual('DateIntervalFilter');
+          expect((<DateIntervalFilter>context.testComponent.latestState.filters[2]).from).toEqual(from);
+          expect((<DateIntervalFilter>context.testComponent.latestState.filters[2]).to).toEqual(to);
+          expect(context.testComponent.latestState.filters[3].filterState.type).toEqual('NumberIntervalFilter');
+          expect((<NumberIntervalFilter>context.testComponent.latestState.filters[3]).from).toEqual(13);
+          expect((<NumberIntervalFilter>context.testComponent.latestState.filters[3]).to).toEqual(78);
+          console.log(context.testComponent.latestState.filters[4]);
+          expect(context.testComponent.latestState.filters[4].property).toEqual('test');
+          expect(context.testComponent.latestState.filters[4].value).toEqual('1234');
+          expect(context.testComponent.latestState.filters).toEqual([
+            listFilter,
+            colorFilter,
+            dateIntervalFilter,
+            numberIntervalFilter,
+            { property: 'test', value: '1234' },
+          ]);
+
+          filters.remove(colorFilter);
+          filters.remove(numberIntervalFilter);
           context.detectChanges();
-          expect(context.testComponent.nbRefreshed).toEqual(3);
-          expect(filters.getActiveFilters()).toContain(customFilter);
-          expect(filters.getActiveFilters()).toContain(testStringFilter);
-          expect(filters.getActiveFilters()).not.toContain(builtinStringFilter);
-          expect(filters.getActiveFilters()).toBeArrayOfSize(2);
-          expect(stateProvider.state.filters).toEqual(newFilterState);
+
+          expect(filters.getActiveFilters()).toBeArrayOfSize(3);
+          expect(context.testComponent.latestState.filters[0].filterState.type).toEqual('ListFilter');
+          expect((<ListFilter>context.testComponent.latestState.filters[0]).selectedValue).toEqual('MALE');
+          expect(context.testComponent.latestState.filters[1].filterState.type).toEqual('DateIntervalFilter');
+          expect((<DateIntervalFilter>context.testComponent.latestState.filters[1]).from).toEqual(from);
+          expect((<DateIntervalFilter>context.testComponent.latestState.filters[1]).to).toEqual(to);
+          expect(context.testComponent.latestState.filters[2].property).toEqual('test');
+          expect(context.testComponent.latestState.filters[2].value).toEqual('1234');
+          expect(context.testComponent.latestState.filters).toEqual([
+            listFilter,
+            dateIntervalFilter,
+            { property: 'test', value: '1234' },
+          ]);
+
+          filters.remove(listFilter);
+          filters.remove(dateIntervalFilter);
+          filters.remove(builtinStringFilter);
+          context.detectChanges();
+
+          expect(filters.getActiveFilters()).toBeEmptyArray();
+          expect(context.testComponent.latestState.filters).toBeUndefined();
         });
       });
     });

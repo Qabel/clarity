@@ -16,7 +16,8 @@ import { FiltersProvider } from './filters';
 import { Page } from './page';
 import { Sort } from './sort';
 import { StateDebouncer } from './state-debouncer.provider';
-import { ClrDatagridFilterInterface } from '../interfaces/filter.interface';
+import { SerializableFilter } from '../interfaces/serializable.filter.interface';
+import { StringFilterStateInterface } from '../interfaces/string.filter.state.interface';
 
 /**
  * This provider aggregates state changes from the various providers of the Datagrid
@@ -34,22 +35,21 @@ export class StateProvider<T> {
    * The Observable that lets other classes subscribe to global state changes
    */
   change: Observable<ClrDatagridStateInterface<T>> = this.debouncer.change.pipe(map(() => this.state));
+  _prevState: ClrDatagridStateInterface<T>;
 
-  /*
-     * By making this a getter, we open the possibility for a setter in the future.
-     * It's been requested a couple times.
-     */
   get state(): ClrDatagridStateInterface<T> {
     const state: ClrDatagridStateInterface<T> = {};
     if (this.page.size > 0) {
       state.page = { from: this.page.firstItem, to: this.page.lastItem, size: this.page.size };
+    } else {
+      state.page = { from: 0 };
     }
     if (this.sort.comparator) {
       if (this.sort.comparator instanceof DatagridPropertyComparator) {
         /*
-                 * Special case for the default object property comparator,
-                 * we give the property name instead of the actual comparator.
-                 */
+                         * Special case for the default object property comparator,
+                         * we give the property name instead of the actual comparator.
+                         */
         state.sort = { by: (<DatagridPropertyComparator<T>>this.sort.comparator).prop, reverse: this.sort.reverse };
       } else {
         state.sort = { by: this.sort.comparator, reverse: this.sort.reverse };
@@ -60,32 +60,32 @@ export class StateProvider<T> {
     if (activeFilters.length > 0) {
       state.filters = [];
       for (const filter of activeFilters) {
-        if (filter instanceof DatagridStringFilterImpl) {
-          const stringFilter = filter.filterFn;
-          if (stringFilter instanceof DatagridPropertyStringFilter) {
-            /*
-                         * Special case again for the default object property filter,
-                         * we give the property name instead of the full filter object.
-                         */
-            state.filters.push({
-              property: stringFilter.prop,
-              value: filter.value,
-            });
-            continue;
-          }
+        if (filter.filterState && filter.filterState.type === 'BuiltinStringFilter') {
+          const stringFilterState = <StringFilterStateInterface>filter.filterState;
+          state.filters.push({
+            property: stringFilterState.property,
+            value: stringFilterState.value,
+          });
+        } else {
+          state.filters.push(filter);
         }
-        state.filters.push(filter);
       }
     }
     return state;
   }
 
   set state(state: ClrDatagridStateInterface<T>) {
+    if (this.sameAsPreviousState(state)) {
+      return;
+    }
+
     this.debouncer.changeStart();
+
     if (state.page) {
       this.page.size = state.page.size;
       this.page.current = Math.ceil(state.page.from / state.page.size) + 1;
     }
+
     if (state.sort) {
       if (typeof state.sort.by === 'string') {
         if (!(this.sort.comparator instanceof DatagridPropertyComparator)) {
@@ -99,10 +99,11 @@ export class StateProvider<T> {
         this.sort.reverse = state.sort.reverse;
       }
     }
-    if (state.filters) {
-      const activeFilters = this.filters.getActiveFilters();
+
+    if (!this.filtersAreSame(state) && state.filters) {
+      const gridFilters = this.filters.getFilters();
       for (const filter of state.filters) {
-        let filterObject: ClrDatagridFilterInterface<T>;
+        let filterObject: SerializableFilter<T>;
         if (filter.hasOwnProperty('property') && filter.hasOwnProperty('value')) {
           const defaultFilterRepresentation = filter as { property: string; value: string };
           const propertyStringFilter = new DatagridPropertyStringFilter(defaultFilterRepresentation.property);
@@ -110,17 +111,82 @@ export class StateProvider<T> {
           stringFilter.value = defaultFilterRepresentation.value;
           filterObject = stringFilter;
         } else {
-          filterObject = filter as ClrDatagridFilterInterface<T>;
+          filterObject = filter as SerializableFilter<T>;
         }
-        const existing = activeFilters.findIndex(value => value === filterObject);
+        const existing = gridFilters.findIndex(value => value.equals(filterObject));
         if (existing !== -1) {
-          activeFilters.splice(existing, 1);
+          gridFilters[existing].filterState = filterObject.filterState;
         } else {
           this.filters.add(filterObject);
         }
       }
-      activeFilters.forEach(filter => this.filters.remove(filter));
     }
+
+    this._prevState = state;
     this.debouncer.changeDone();
+  }
+
+  sameAsPreviousState(state: ClrDatagridStateInterface) {
+    if (!this._prevState) {
+      return false;
+    }
+
+    if (state.page && this._prevState.page && !this.propertiesAreSame(state.page, this._prevState.page)) {
+      return false;
+    }
+
+    if (state.sort && this._prevState.sort && !this.propertiesAreSame(state.sort, this._prevState.sort)) {
+      return false;
+    }
+
+    return this.filtersAreSame(state);
+  }
+
+  filtersAreSame(state: ClrDatagridStateInterface): boolean {
+    if (!this._prevState) {
+      return false;
+    }
+
+    if (!this.filtersCountAreSame(state)) {
+      return false;
+    }
+
+    if (state.filters && this._prevState.filters) {
+      for (let i; i < state.filters.length; i++) {
+        if (!this.propertiesAreSame(state.filters[i], this._prevState.filters[i])) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  propertiesAreSame(object1: any, object2: any): boolean {
+    for (let key in object1) {
+      if (object1[key] !== object2[key]) {
+        return false;
+      }
+    }
+
+    for (let key in object2) {
+      if (object1[key] !== object2[key]) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  filtersCountAreSame(state: ClrDatagridStateInterface): boolean {
+    if (!state.filters && !this._prevState.filters) {
+      return true;
+    }
+
+    if ((!state.filters && this._prevState.filters) || (state.filters && !this._prevState.filters)) {
+      return false;
+    }
+
+    return state.filters.length === this._prevState.filters.length;
   }
 }

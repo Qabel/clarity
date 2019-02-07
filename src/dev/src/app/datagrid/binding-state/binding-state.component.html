@@ -1,0 +1,82 @@
+<!--
+  ~ Copyright (c) 2016-2018 VMware, Inc. All Rights Reserved.
+  ~ This software is released under MIT license.
+  ~ The full license information can be found in LICENSE in the root directory of this project.
+  -->
+
+<h2>Binding Grid state</h2>
+
+<p>
+  We expose the state field of the grid, which holds the paging, sorting, and filtering state.
+  This is a two-way binding, the user can preset all the settings via this field.
+</p>
+
+<clr-datagrid [(clrDgState)]="state" (clrDgStateChange)="refresh()" style="height: 300px;">
+  <clr-dg-column>User ID</clr-dg-column>
+  <clr-dg-column [clrDgField]="'name'">Name</clr-dg-column>
+  <clr-dg-column [clrDgField]="'pokemon'">Pokemon</clr-dg-column>
+  <clr-dg-column>Creation date
+    <clr-dg-filter [clrDgFilter]="dateFilter">
+      <clr-datagrid-date-interval-filter-demo #creationFilter>
+      </clr-datagrid-date-interval-filter-demo>
+    </clr-dg-filter>
+  </clr-dg-column>
+  <clr-dg-column>Creation date 2
+    <clr-dg-filter [clrDgFilter]="dateFilter2">
+      <clr-datagrid-date-interval-filter-demo #creationFilter2>
+      </clr-datagrid-date-interval-filter-demo>
+    </clr-dg-filter>
+  </clr-dg-column>
+  <clr-dg-column>Favorite color
+    <clr-dg-filter [clrDgFilter]="filter">
+      <clr-datagrid-color-filter-demo #colorFilter class="color-filter">
+      </clr-datagrid-color-filter-demo>
+    </clr-dg-filter>
+  </clr-dg-column>
+  <clr-dg-column>Favorite color 2
+    <clr-dg-filter [clrDgFilter]="filter2">
+      <clr-datagrid-color-filter-demo #colorFilter2 class="color-filter">
+      </clr-datagrid-color-filter-demo>
+    </clr-dg-filter>
+  </clr-dg-column>
+  <clr-dg-column>Gender
+    <clr-dg-filter [clrDgFilter]="listFilter">
+      <clr-datagrid-list-filter-demo #genderFilter></clr-datagrid-list-filter-demo>
+    </clr-dg-filter>
+  </clr-dg-column>
+  <clr-dg-column>Gender 2
+    <clr-dg-filter [clrDgFilter]="listFilter2">
+      <clr-datagrid-list-filter-demo #genderFilter2></clr-datagrid-list-filter-demo>
+    </clr-dg-filter>
+  </clr-dg-column>
+  <clr-dg-column>Age
+    <clr-dg-filter [clrDgFilter]="numberIntervalFilter">
+      <clr-datagrid-number-interval-filter-demo #ageFilter></clr-datagrid-number-interval-filter-demo>
+    </clr-dg-filter>
+  </clr-dg-column>
+  <clr-dg-column>Age 2
+    <clr-dg-filter [clrDgFilter]="numberIntervalFilter2">
+      <clr-datagrid-number-interval-filter-demo #ageFilter2></clr-datagrid-number-interval-filter-demo>
+    </clr-dg-filter>
+  </clr-dg-column>
+
+  <clr-dg-row *ngFor="let user of users">
+    <clr-dg-cell>{{user.id}}</clr-dg-cell>
+    <clr-dg-cell>{{user.name}}</clr-dg-cell>
+    <clr-dg-cell>{{user.pokemon.name}}</clr-dg-cell>
+    <clr-dg-cell>{{user.creation | date}}</clr-dg-cell>
+    <clr-dg-cell>{{user.creation | date}}</clr-dg-cell>
+    <clr-dg-cell>{{user.color1}}</clr-dg-cell>
+    <clr-dg-cell>{{user.color2}}</clr-dg-cell>
+    <clr-dg-cell>{{user.gender1}}</clr-dg-cell>
+    <clr-dg-cell>{{user.gender2}}</clr-dg-cell>
+    <clr-dg-cell>{{user.age1}}</clr-dg-cell>
+    <clr-dg-cell>{{user.age2}}</clr-dg-cell>
+  </clr-dg-row>
+
+  <clr-dg-footer>
+    {{pagination.firstItem + 1}} - {{pagination.lastItem + 1}} of {{total}} users
+    <clr-dg-pagination #pagination [clrDgTotalItems]="total" [clrDgPageSize]="pageInfo.size"
+                       [clrDgPage]="pageInfo.current"></clr-dg-pagination>
+  </clr-dg-footer>
+</clr-datagrid>

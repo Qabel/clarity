@@ -13,6 +13,7 @@ import { CustomFilter } from './providers/custom-filter';
 import { FiltersProvider, RegisteredFilter } from './providers/filters';
 import { DatagridFilterRegistrar } from './utils/datagrid-filter-registrar';
 import { ClrCommonStrings } from '../../utils/i18n/common-strings.interface';
+import { SerializableFilter } from './interfaces/serializable.filter.interface';
 
 /**
  * Custom filter that can be added in any column to override the default object property string filter.
@@ -43,7 +44,7 @@ import { ClrCommonStrings } from '../../utils/i18n/common-strings.interface';
         </ng-template>
     `,
 })
-export class ClrDatagridFilter<T = any> extends DatagridFilterRegistrar<T, ClrDatagridFilterInterface<T>>
+export class ClrDatagridFilter<T = any> extends DatagridFilterRegistrar<T, SerializableFilter<T>>
   implements CustomFilter {
   constructor(_filters: FiltersProvider<T>, public commonStrings: ClrCommonStrings) {
     super(_filters);
@@ -72,7 +73,7 @@ export class ClrDatagridFilter<T = any> extends DatagridFilterRegistrar<T, ClrDa
   @Output('clrDgFilterOpenChange') public openChanged = new EventEmitter<boolean>(false);
 
   @Input('clrDgFilter')
-  public set customFilter(filter: ClrDatagridFilterInterface<T> | RegisteredFilter<T, ClrDatagridFilterInterface<T>>) {
+  public set customFilter(filter: SerializableFilter<T> | RegisteredFilter<T, SerializableFilter<T>>) {
     this.setFilter(filter);
   }
 
